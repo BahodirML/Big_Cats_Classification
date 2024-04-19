@@ -1,6 +1,6 @@
 # Deep Learning Big-Cat Classification
 
-![Alt text](pics/download.jpeg)
+![Alt text](pics/view.png)
 
 ## Streamlit Big Cats Classifier Deployment
 

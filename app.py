@@ -1,75 +1,81 @@
 import streamlit as st
-import tensorflow
+from fastai.vision.all import *
 from PIL import Image
 import numpy as np
+import plotly.express as px
 import pathlib
-from PIL import Image as PILImage
-import plotly as px
-from tensorflow import keras
-from tensorflow.keras.models import Model, Sequential
-from tensorflow.keras import layers, regularizers
-from tensorflow.keras.applications import ResNet50V2
-
-images_size = 224
-TL_Models =[
-    ResNet50V2(input_shape=(images_size, images_size, 3), weights='imagenet', include_top=False)
-]
-
-# Define all the TL models names. This will be later used during visualization
-TL_Models_NAMES = [
-    'ResNet50V2'
-]
-
-# Fine tuning 
-for tl_model in TL_Models:
-    tl_model.trainable = False
-
-model = keras.Sequential([
-        tl_model,
-        layers.GlobalAveragePooling2D(),
-        layers.Dropout(0.5),
-        layers.Dense(10, activation='softmax')
-    ])
 
 # title 
-st.title('Animal Classification Model')
-
-# Get user's name
-name = st.text_input("Enter your name: ")
-
-# Check if name is provided
-if name:
-    st.write(f"Hi {name}, Welcome to Our Streamlit App!")
-else:
-    st.write("Please enter your name above.")
-
+st.title('Deep Learing Big-Cats Classification Model')
+st.markdown("""
+    ##### Connect with Me
+    - [GitHub](https://github.com/BahodirML)
+    - [LinkedIn](https://www.linkedin.com/in/bakhodir-alayorov-250a3a209/)
+    """)
 # uploading
-file = st.file_uploader("Upload picture", type=['png', 'jpeg', 'gif', 'svg'])
+file = st.file_uploader("Upload picture to predict", type=['png', 'jpeg', 'gif', 'svg'])
 
 
 if file:
     # image
     st.image(file)
+    
+    img = PILImage.create(file)
+    
+    model_path = Path("model.pkl")
+    learn = load_learner(model_path)
 
-    img = PILImage.open(file)
-
-    # model
-    # Load the weights
-    model.load_weights('7obj-model.weights.h5')
-    if model:
-        # Preprocess the image (e.g., resize, normalize)
-        img = img.resize((224, 224))  # Example resizing to match the model's input shape
-        img_array = np.array(img) / 255.0  # Example normalization
-        img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
-
-        # Make predictions using the model
-        pred_probs = model.predict(img_array)[0]
-
-        # Get the predicted class and its probability
-        pred_id = np.argmax(pred_probs)
-        pred = model.dls.vocab[pred_id]
-        prob = pred_probs[pred_id]
-
-        # Display predictions and probabilities
+    if learn:
+        pred, pred_id, probs = learn.predict(img)
         st.success(f"Prediction: {pred}")
-        st.info(f"Probability: {prob * 100:.1f}%")
+        st.info(f"Probability: {probs[pred_id]*100:.1f}%")
+
+        # plotting
+        fig = px.bar(y=probs*100, x=learn.dls.vocab)
+        fig.update_layout(
+        yaxis_title="Probability(%)",  # Label for the y-axis
+        xaxis_title="Animals"        # Label for the x-axis
+        )
+        st.plotly_chart(fig)
+
+
+# Markdown text for the description
+description = """
+# Streamlit Big Cats Classifier Deployment
+
+Welcome to the Streamlit app for deploying our trained model that classifies 10 different kinds of big cats!
+
+## About the Model
+Our model has been trained using PyTorch and TensorFlow with Convolutional Neural Networks (CNNs). It has achieved an impressive accuracy of 100% on both PyTorch and TensorFlow frameworks, ensuring reliable performance.
+
+## Dataset Preparation Toolkit
+This app is more than just model deployment; it's an all-in-one toolkit for creating high-quality image datasets. Our custom set of tools assists in:
+- Organizing downloaded images
+- Filtering out irrelevant images
+- Removing duplicates
+- Cropping images to focus on the region of interest
+- Resizing images for uniformity
+
+## Model Training
+We meticulously trained our model on a meticulously curated dataset consisting of images of 10 distinct types of big cats, including pumas, tigers, and others. The training process involved:
+- Preprocessing the images using our toolkit to ensure uniformity and relevance
+- Leveraging both PyTorch and TensorFlow frameworks for model training
+- Utilizing Convolutional Neural Networks (CNNs) for image classification
+- Fine-tuning the model parameters to achieve optimal performance
+
+The rigorous training process, coupled with the robust dataset preparation, resulted in our model achieving an outstanding accuracy of 100% on both PyTorch and TensorFlow platforms.
+
+## Model Deployment
+Now, you can leverage the power of our trained model right here in this Streamlit app. Simply upload an image of a big cat, and our model will predict its class accurately.
+
+### Instructions:
+1. Upload an image using the file uploader.
+2. View the predicted class along with the confidence score.
+
+Feel free to explore and enjoy the seamless deployment experience!
+
+"""
+
+# Displaying the description using Markdown
+st.markdown(description)
+
